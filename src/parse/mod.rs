@@ -8,3 +8,6 @@ mod parse_coin_flip;
 mod parse_numbers;
 #[allow(dead_code)]
 mod parse_ranges;
+mod parse_expression;
+
+pub use parse_expression::parse_expression;
