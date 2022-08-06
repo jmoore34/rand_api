@@ -2,6 +2,7 @@ use nom::{combinator::value, IResult, bytes::complete::tag};
 
 use crate::Expression;
 
+// parse the "coin" command
 pub fn parse_coin_flip(input: &str) -> IResult<&str, Expression> {
     value(Expression::CoinFlip, tag("coin"))
     (input)

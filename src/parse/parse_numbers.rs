@@ -1,21 +1,27 @@
 use nom::{IResult, bytes::complete::{take_while, tag, take_while1}, combinator::{recognize, opt}, sequence::{pair, tuple}, branch::alt};
 
+/// Tell if char is digit or underscore
+/// so numbers can have underscores in them
+/// e.g. 1_000_000
 fn is_digit(c: char) -> bool {
     c.is_ascii_digit() || c == '_'
 }
 
-// parse 0 or more digits (including underscore)
+/// parse 0 or more digits (including underscore)
 fn parse_digit0(input: &str) -> IResult<&str, &str> {
     take_while(is_digit)
     (input)
 }
 
-// parse 1 or more digits (including underscore)
+/// parse 1 or more digits (including underscore)
 fn parse_digit1(input: &str) -> IResult<&str, &str> {
     take_while1(is_digit)
     (input)
 }
 
+/// parse an integer with an optional sign (+/-)
+/// result is a &str (reference to where the int was found in the input).
+/// use another function like parse_i64 for an numeric result
 pub fn parse_signed_integer(input: &str) -> IResult<&str, &str> {
     recognize(
         pair(
@@ -29,6 +35,7 @@ pub fn parse_signed_integer(input: &str) -> IResult<&str, &str> {
     (input)
 }
 
+/// parse a signed integer and return the result
 pub fn parse_i64(input: &str) -> IResult<&str, i64> {
     let (remain, raw_int) = parse_signed_integer(input)?;
 
@@ -38,8 +45,8 @@ pub fn parse_i64(input: &str) -> IResult<&str, i64> {
     }
 }
 
-// parse an i64 (i.e., no decimal point or exponent)
-// and cast it to a f32
+/// parse an i64 (i.e., no decimal point or exponent)
+/// and cast it to a f32
 pub fn parse_i64_as_f32(input: &str) -> IResult<&str, f32> {
     let (remain, raw_int) = parse_signed_integer(input)?;
 
@@ -49,6 +56,8 @@ pub fn parse_i64_as_f32(input: &str) -> IResult<&str, f32> {
     }
 }
 
+/// parse the function part of a float
+/// e.g. the .5 in 1.5
 fn parse_fraction_part(input: &str) -> IResult<&str, &str> {
     recognize(
         pair(
@@ -59,6 +68,8 @@ fn parse_fraction_part(input: &str) -> IResult<&str, &str> {
     (input)
 }
 
+/// parse the exponent part of a float
+/// e.g. the e2 in the 1.5e2
 fn parse_exponent(input: &str) -> IResult<&str, &str> {
     recognize(
         pair(
@@ -72,8 +83,8 @@ fn parse_exponent(input: &str) -> IResult<&str, &str> {
     (input)   
 }
 
-// parse a float
-// must contain decimal point and/or exponent
+/// parse a float, returning the part of the str that has the float
+/// must contain decimal point and/or exponent
 fn parse_float(input: &str) -> IResult<&str, &str> {
     recognize(
         tuple((
@@ -94,7 +105,7 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
     (input)
 }
 
-// strict f32: must have dot and/or exponent
+/// strictly parse f32: must have dot and/or exponent
 pub fn parse_f32(input: &str) -> IResult<&str, f32> {
     let (remain, raw_float) = parse_float(input)?;
 
@@ -104,6 +115,9 @@ pub fn parse_f32(input: &str) -> IResult<&str, f32> {
     }
 }
 
+/// flexibly parse f32: i.e., the input can be an integer
+/// w/o decimal or exponent
+/// and it will be cast to f32
 pub fn flexible_parse_f32(input: &str) -> IResult<&str, f32> {
     let (remain, raw_float) = alt((
         parse_float,

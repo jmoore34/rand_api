@@ -4,6 +4,7 @@ use crate::Expression;
 
 use super::parse_numbers::{parse_f32, flexible_parse_f32, parse_i64_as_f32, parse_i64};
 
+/// parse a float range, e.g. 1.0-5.0
 fn parse_float_range(input: &str) -> IResult<&str, Expression> {
     let (remain, (min , max)) = alt((
         // handle these cases:
@@ -27,6 +28,7 @@ fn parse_float_range(input: &str) -> IResult<&str, Expression> {
     Ok((remain, Expression::FloatRange(min, max)))
 }
 
+/// parse an int range, e.g. 1-5
 fn parse_int_range(input: &str) -> IResult<&str, Expression> {
     let (remain, (min , max)) = 
         separated_pair(
