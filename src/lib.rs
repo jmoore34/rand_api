@@ -10,7 +10,7 @@ use rand::{thread_rng, Rng};
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     CoinFlip,
-    IntRange(i32, i32),
+    IntRange(i64, i64),
     FloatRange(f32, f32)
 }
 
@@ -158,11 +158,23 @@ fn parse_float_range(input: &str) -> IResult<&str, Expression> {
     Ok((remain, Expression::FloatRange(min, max)))
 }
 
+fn parse_int_range(input: &str) -> IResult<&str, Expression> {
+    let (remain, (min , max)) = 
+        separated_pair(
+            parse_i64,
+            tag("-"),
+            parse_i64
+        )
+        (input)?;
+
+    Ok((remain, Expression::IntRange(min, max)))
+}
+
 #[cfg(test)]
 mod tests {
     use nom::error::Error;
 
-    use crate::{parse_coin_flip, Expression, parse_f32, parse_i64, parse_float_range};
+    use crate::{parse_coin_flip, Expression, parse_f32, parse_i64, parse_float_range, parse_int_range};
 
     #[test]
     fn test_coin_flip() {
@@ -192,6 +204,11 @@ mod tests {
         assert_eq!(parse_float_range("5-10.0"), Ok(("", Expression::FloatRange(5.0, 10.0))));
         assert_eq!(parse_float_range("5.0-10"), Ok(("", Expression::FloatRange(5.0, 10.0))));
         assert!(parse_float_range("5-10").is_err());
+    }
 
+    #[test]
+    fn test_int_range() {
+        assert_eq!(parse_int_range("5-10"), Ok(("", Expression::IntRange(5,10))));
+        assert!(parse_int_range("5.0-10").is_err());
     }
 }
