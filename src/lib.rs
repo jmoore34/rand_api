@@ -57,6 +57,17 @@ fn parse_i64(input: &str) -> IResult<&str, i64> {
     }
 }
 
+// parse an i64 (i.e., no decimal point or exponent)
+// and cast it to a f32
+fn parse_i64_as_f32(input: &str) -> IResult<&str, f32> {
+    let (remain, raw_int) = parse_signed_integer(input)?;
+
+    match raw_int.parse::<f32>() {
+        Ok(i) => Ok((remain, i)),
+        Err(_) => todo!(),
+    }
+}
+
 fn parse_fraction_part(input: &str) -> IResult<&str, &str> {
     recognize(
         pair(
@@ -102,7 +113,7 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
     (input)
 }
 
-
+// strict f32: must have dot and/or exponent
 fn parse_f32(input: &str) -> IResult<&str, f32> {
     let (remain, raw_float) = parse_float(input)?;
 
@@ -112,12 +123,36 @@ fn parse_f32(input: &str) -> IResult<&str, f32> {
     }
 }
 
+fn flexible_parse_f32(input: &str) -> IResult<&str, f32> {
+    let (remain, raw_float) = alt((
+        parse_float,
+        parse_signed_integer
+    ))(input)?;
+
+    match raw_float.parse::<f32>() {
+        Ok(i) => Ok((remain, i)),
+        Err(_) => todo!(),
+    }
+}
+
 fn parse_float_range(input: &str) -> IResult<&str, Expression> {
-    let (remain, (min, max)) = separated_pair(
-        parse_f32,
-        tag("-"),
-        parse_f32
-    )
+    let (remain, (min , max)) = alt((
+        // handle these cases:
+        // <float> - <integer>
+        // <float> - <float>
+        separated_pair(
+            parse_f32,
+            tag("-"),
+            flexible_parse_f32
+        ),
+        // handle this case:
+        // <integer> - <float>
+        separated_pair(
+            parse_i64_as_f32,
+            tag("-"),
+            parse_f32
+        )
+    ))
     (input)?;
 
     Ok((remain, Expression::FloatRange(min, max)))
@@ -125,6 +160,8 @@ fn parse_float_range(input: &str) -> IResult<&str, Expression> {
 
 #[cfg(test)]
 mod tests {
+    use nom::error::Error;
+
     use crate::{parse_coin_flip, Expression, parse_f32, parse_i64, parse_float_range};
 
     #[test]
@@ -152,6 +189,9 @@ mod tests {
     #[test]
     fn test_float_range() {
         assert_eq!(parse_float_range("5.0-10.0"), Ok(("", Expression::FloatRange(5.0, 10.0))));
+        assert_eq!(parse_float_range("5-10.0"), Ok(("", Expression::FloatRange(5.0, 10.0))));
+        assert_eq!(parse_float_range("5.0-10"), Ok(("", Expression::FloatRange(5.0, 10.0))));
+        assert!(parse_float_range("5-10").is_err());
 
     }
 }
