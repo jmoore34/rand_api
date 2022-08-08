@@ -1,12 +1,20 @@
-use std::io::{prelude::*, self};
-
 use rand_api::evaluate;
+use axum::{
+    routing::get,
+    Router, extract::Path,
+};
 
-fn main() {
-    for line in io::stdin().lines() {
-        match line {
-            Ok(line) => println!("{}", evaluate(&line)),
-            Err(_) => println!("Error while reading line"),
-        }
-    }
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/:query", get(root));
+
+    axum::Server::bind(&"0.0.0.0:80".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+async fn root(Path(query): Path<String>) -> String {
+    evaluate(&query)
 }
