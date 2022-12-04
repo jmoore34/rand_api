@@ -1,20 +1,31 @@
 use rand_api::evaluate;
-use axum::{
-    routing::get,
-    Router, extract::Path,
-};
+use reedline::{Reedline, DefaultPrompt, DefaultPromptSegment, Signal, PromptHistorySearchStatus, FileBackedHistory, ReedlineMenu, ColumnarMenu};
 
-#[tokio::main]
-async fn main() {
-    let app = Router::new()
-        .route("/:query", get(root));
+fn main() {
+    let history = Box::new(
+        FileBackedHistory::new(20)
+    );
+    let mut line_editor = Reedline::create()
+        .with_history(history)
+        .with_menu(ReedlineMenu::HistoryMenu(Box::new(ColumnarMenu::default())));
+    let prompt = DefaultPrompt {
+        left_prompt: DefaultPromptSegment::Basic("rand-api".to_owned()),
+        right_prompt: DefaultPromptSegment::Empty
+    };
 
-    axum::Server::bind(&"0.0.0.0:80".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-}
-
-async fn root(Path(query): Path<String>) -> String {
-    evaluate(&query)
+    loop {
+        let sig = line_editor.read_line(&prompt);
+        match sig {
+            Ok(Signal::Success(buffer)) => {
+                println!("{}", evaluate(&buffer));
+            }
+            Ok(Signal::CtrlD) | Ok(Signal::CtrlC) => {
+                println!("\nAborted!");
+                break;
+            }
+            x => {
+                println!("Event: {:?}", x);
+            }
+        }
+    }
 }
