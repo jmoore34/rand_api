@@ -2,7 +2,7 @@ use nom::{IResult, branch::alt};
 
 use crate::Expression;
 
-use super::{parse_ranges::{parse_float_range, parse_int_range}, parse_coin_flip::parse_coin_flip};
+use super::{parse_ranges::{parse_float_range, parse_int_range}, parse_coin_flip::parse_coin_flip, parse_dice_roll::parse_dice_expression};
 
 pub fn parse_expression(input: &str) -> IResult<&str, Expression> {
     alt((
@@ -11,7 +11,8 @@ pub fn parse_expression(input: &str) -> IResult<&str, Expression> {
         // in that range, only integers
         parse_float_range,
         parse_int_range,
-        parse_coin_flip
+        parse_coin_flip,
+        parse_dice_expression
     ))
     (input)
 }

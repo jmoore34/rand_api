@@ -20,5 +20,10 @@ pub fn evaluate_expression(expression: Expression) -> String {
             let mut rng = thread_rng();
             rng.gen_range(min..=max).to_string()
         },
+        x@Expression::DiceExpression(_) => {
+            dbg!(x);
+            "".to_owned()
+        },
+
     }
 }

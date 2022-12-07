@@ -1,4 +1,12 @@
-use nom::{IResult, bytes::complete::{take_while, tag, take_while1}, combinator::{recognize, opt}, sequence::{pair, tuple}, branch::alt};
+use std::str::FromStr;
+
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_while, take_while1},
+    combinator::{opt, recognize},
+    sequence::{pair, tuple},
+    IResult,
+};
 
 /// Tell if char is digit or underscore
 /// so numbers can have underscores in them
@@ -9,30 +17,29 @@ fn is_digit(c: char) -> bool {
 
 /// parse 0 or more digits (including underscore)
 fn parse_digit0(input: &str) -> IResult<&str, &str> {
-    take_while(is_digit)
-    (input)
+    take_while(is_digit)(input)
 }
 
 /// parse 1 or more digits (including underscore)
 fn parse_digit1(input: &str) -> IResult<&str, &str> {
-    take_while1(is_digit)
-    (input)
+    take_while1(is_digit)(input)
 }
 
 /// parse an integer with an optional sign (+/-)
 /// result is a &str (reference to where the int was found in the input).
 /// use another function like parse_i64 for an numeric result
 pub fn parse_signed_integer(input: &str) -> IResult<&str, &str> {
-    recognize(
-        pair(
-            opt(alt((
-                tag("+"),
-                tag("-")
-            ))),
-            parse_digit1
-        )
-    )
-    (input)
+    recognize(pair(opt(alt((tag("+"), tag("-")))), parse_digit1))(input)
+}
+
+pub fn parse_signed<T: FromStr>(input: &str) -> IResult<&str, T>
+{
+    let (remain, raw_num) = parse_signed_integer(input)?;
+
+    match raw_num.parse::<T>() {
+        Ok(i) => Ok((remain, i)),
+        Err(err) => todo!(),
+    }
 }
 
 /// parse a signed integer and return the result
@@ -41,6 +48,15 @@ pub fn parse_i64(input: &str) -> IResult<&str, i64> {
 
     match raw_int.parse::<i64>() {
         Ok(i) => Ok((remain, i)),
+        Err(err) => todo!(),
+    }
+}
+
+pub fn parse_u8(input: &str) -> IResult<&str, u8> {
+    let (remain, raw_int) = parse_digit1(input)?;
+
+    match raw_int.parse::<u8>() {
+        Ok(u) => Ok((remain, u)),
         Err(_) => todo!(),
     }
 }
@@ -59,50 +75,29 @@ pub fn parse_i64_as_f32(input: &str) -> IResult<&str, f32> {
 /// parse the function part of a float
 /// e.g. the .5 in 1.5
 fn parse_fraction_part(input: &str) -> IResult<&str, &str> {
-    recognize(
-        pair(
-            tag("."),
-            parse_digit0 // allow e.g. "5."
-        )
-    )
-    (input)
+    recognize(pair(
+        tag("."),
+        parse_digit0, // allow e.g. "5."
+    ))(input)
 }
 
 /// parse the exponent part of a float
 /// e.g. the e2 in the 1.5e2
 fn parse_exponent(input: &str) -> IResult<&str, &str> {
-    recognize(
-        pair(
-            alt((
-                tag("e"),
-                tag("E")
-            )), 
-            parse_signed_integer
-        )
-    )
-    (input)   
+    recognize(pair(alt((tag("e"), tag("E"))), parse_signed_integer))(input)
 }
 
 /// parse a float, returning the part of the str that has the float
 /// must contain decimal point and/or exponent
 fn parse_float(input: &str) -> IResult<&str, &str> {
-    recognize(
-        tuple((
-            opt(alt((
-                tag("+"),
-                tag("-")
-            ))),
-            parse_digit0,
-            alt((
-                parse_exponent,
-                recognize(pair(
-                    parse_fraction_part,
-                    opt(parse_exponent)
-                ))
-            ))
-        ))
-    )
-    (input)
+    recognize(tuple((
+        opt(alt((tag("+"), tag("-")))),
+        parse_digit0,
+        alt((
+            parse_exponent,
+            recognize(pair(parse_fraction_part, opt(parse_exponent))),
+        )),
+    )))(input)
 }
 
 /// strictly parse f32: must have dot and/or exponent
@@ -119,10 +114,7 @@ pub fn parse_f32(input: &str) -> IResult<&str, f32> {
 /// w/o decimal or exponent
 /// and it will be cast to f32
 pub fn flexible_parse_f32(input: &str) -> IResult<&str, f32> {
-    let (remain, raw_float) = alt((
-        parse_float,
-        parse_signed_integer
-    ))(input)?;
+    let (remain, raw_float) = alt((parse_float, parse_signed_integer))(input)?;
 
     match raw_float.parse::<f32>() {
         Ok(i) => Ok((remain, i)),
@@ -132,7 +124,7 @@ pub fn flexible_parse_f32(input: &str) -> IResult<&str, f32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parse::parse_numbers::{parse_i64, parse_f32};
+    use crate::parse::parse_numbers::{parse_f32, parse_i64};
 
     #[test]
     fn test_int() {

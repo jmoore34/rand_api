@@ -9,5 +9,6 @@ mod parse_numbers;
 #[allow(dead_code)]
 mod parse_ranges;
 mod parse_expression;
+mod parse_dice_roll;
 
 pub use parse_expression::parse_expression;
