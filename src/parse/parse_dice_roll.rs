@@ -168,3 +168,50 @@ fn parse_keep_drop(input: &str) -> IResult<&str, RollModifier> {
         }),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{DiceExpressionAtom::*, parse::parse_dice_roll::*, dice::{
+        advantage::*, keepdrop::*
+    }};
+    #[test]
+    fn constant() {
+        assert_eq!(parse_dice_expression_atom("-7"), Ok(("", DiceExpressionAtom::Constant(-7))));
+        assert_eq!(parse_dice_expression_atom("+7"), Ok(("", DiceExpressionAtom::Constant(7))));
+    }
+
+    #[test]
+    fn kitchen_sink() {
+        assert_eq!(parse_dice_expression("-6d6r2d2dh2+d20a-5"), Ok(("",
+        Expression::DiceExpression(vec![
+            Roll {
+                number_of_dice: 6,
+                number_of_sides: 6,
+                advantage_status: AdvantageStatus::None,
+                keep_drop: vec![
+                    KeepDrop {
+                        keep_or_drop: KeepOrDrop::Drop,
+                        amount: 2,
+                        highest_or_lowest: HighestOrLowest::Lowest
+                    },
+                    KeepDrop {
+                        keep_or_drop: KeepOrDrop::Drop,
+                        amount: 2,
+                        highest_or_lowest: HighestOrLowest::Highest
+                    }
+                ],
+                reroll: Some(2),
+                subtracted: true
+            },
+            Roll {
+                number_of_dice: 1,
+                number_of_sides: 20,
+                advantage_status: AdvantageStatus::Advantage,
+                keep_drop: vec![],
+                reroll: None,
+                subtracted: false
+            },
+            Constant(-5)
+        ]))));
+    }
+}

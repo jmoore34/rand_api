@@ -1,5 +1,5 @@
 use rand_api::evaluate;
-use reedline::{Reedline, DefaultPrompt, DefaultPromptSegment, Signal, PromptHistorySearchStatus, FileBackedHistory, ReedlineMenu, ColumnarMenu};
+use reedline::{Reedline, DefaultPrompt, DefaultPromptSegment, Signal, FileBackedHistory, ReedlineMenu, ColumnarMenu};
 
 fn main() {
     let history = Box::new(
