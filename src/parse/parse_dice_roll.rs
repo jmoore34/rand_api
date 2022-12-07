@@ -16,7 +16,7 @@ use crate::{
     Expression,
 };
 
-use super::parse_numbers::{parse_signed, parse_u8};
+use super::parse_numbers::{parse_signed_integer, parse_unsigned_integer};
 
 pub fn parse_dice_expression(input: &str) -> IResult<&str, Expression> {
     let (remain, atoms) = many1(parse_dice_expression_atom)(input)?;
@@ -29,7 +29,7 @@ fn parse_dice_expression_atom(input: &str) -> IResult<&str, DiceExpressionAtom> 
 }
 
 fn parse_constant_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
-    let (remain, constant) = parse_signed::<i8>(input)?;
+    let (remain, constant) = parse_signed_integer::<i8>(input)?;
     Ok((remain, DiceExpressionAtom::Constant(constant)))
 }
 
@@ -41,10 +41,10 @@ fn parse_dice_roll_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
             // When it is -, this roll will be subtracted
             opt(alt((tag("+"), tag("-")))),
             // Optional number of dice (defaults to 1)
-            opt(parse_u8),
+            opt(parse_unsigned_integer::<u8>),
             tag("d"),
             // Number of sides on each dice
-            parse_u8,
+            parse_unsigned_integer::<u8>,
         )),
         // Second: parse modifiers (rerolls, advantage, etc) -- optional
         many0(parse_roll_modifier),
@@ -109,7 +109,7 @@ fn parse_roll_modifier(input: &str) -> IResult<&str, RollModifier> {
 }
 
 fn parse_reroll_modifier(input: &str) -> IResult<&str, RollModifier> {
-    let (remain, (_, sides)) = pair(tag("r"), parse_u8)(input)?;
+    let (remain, (_, sides)) = pair(tag("r"), parse_unsigned_integer::<u8>)(input)?;
 
     Ok((remain, RollModifier::Reroll(sides)))
 }
@@ -135,7 +135,7 @@ fn parse_keep_drop(input: &str) -> IResult<&str, RollModifier> {
     let (remain, (keep_or_drop, highest_or_lowest, amount)) = tuple((
         alt((tag("k"), tag("d"))),
         opt(alt((tag("h"), tag("l")))),
-        parse_u8,
+        parse_unsigned_integer::<u8>,
     ))(input)?;
 
     let keep_or_drop = match keep_or_drop {

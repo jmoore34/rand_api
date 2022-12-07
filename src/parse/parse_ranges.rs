@@ -2,7 +2,7 @@ use nom::{IResult, branch::alt, sequence::separated_pair, bytes::complete::tag};
 
 use crate::Expression;
 
-use super::parse_numbers::{parse_f32, flexible_parse_f32, parse_i64_as_f32, parse_i64};
+use super::parse_numbers::{parse_f32, flexible_parse_f32, parse_signed_integer};
 
 /// parse a float range, e.g. 1.0-5.0
 pub fn parse_float_range(input: &str) -> IResult<&str, Expression> {
@@ -18,7 +18,7 @@ pub fn parse_float_range(input: &str) -> IResult<&str, Expression> {
         // handle this case:
         // <integer> - <float>
         separated_pair(
-            parse_i64_as_f32,
+            parse_signed_integer::<f32>,
             tag("-"),
             parse_f32
         )
@@ -30,11 +30,11 @@ pub fn parse_float_range(input: &str) -> IResult<&str, Expression> {
 
 /// parse an int range, e.g. 1-5
 pub fn parse_int_range(input: &str) -> IResult<&str, Expression> {
-    let (remain, (min , max)) = 
+    let (remain, (min , max)) =
         separated_pair(
-            parse_i64,
+            parse_signed_integer::<i64>,
             tag("-"),
-            parse_i64
+            parse_signed_integer::<i64>
         )
         (input)?;
 
