@@ -2,6 +2,7 @@ use dice::atom::DiceExpressionAtom;
 use evaluate::evaluate_expression;
 use parse::parse_expression;
 
+
 mod parse;
 mod evaluate;
 mod dice;

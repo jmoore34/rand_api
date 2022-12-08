@@ -9,3 +9,4 @@ edition = "2021"
 nom = "7.1.1"
 rand = "0.8.5"
 reedline = {path = "../reedline"}
+nu-ansi-term = "0.46.0"
