@@ -3,8 +3,8 @@ use nom::{
     bytes::complete::tag,
     combinator::{opt, recognize},
     multi::{many0, many1},
-    sequence::{pair, tuple},
-    IResult,
+    sequence::{pair, tuple, preceded},
+    IResult, character::complete::space0,
 };
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
     Expression,
 };
 
-use super::parse_numbers::{parse_signed_integer, parse_unsigned_integer};
+use super::{parse_numbers::{parse_signed_integer, parse_unsigned_integer}, parse_whitespace::spaced};
 
 pub fn parse_dice_expression(input: &str) -> IResult<&str, Expression> {
     let (remain, atoms) = many1(parse_dice_expression_atom)(input)?;
@@ -25,7 +25,11 @@ pub fn parse_dice_expression(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_dice_expression_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
-    alt((parse_dice_roll_atom, parse_constant_atom))(input)
+    preceded(
+        // Optional leading whitespace
+        space0,
+        alt((parse_dice_roll_atom, parse_constant_atom))
+    )(input)
 }
 
 fn parse_constant_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
@@ -34,12 +38,13 @@ fn parse_constant_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
 }
 
 fn parse_dice_roll_atom(input: &str) -> IResult<&str, DiceExpressionAtom> {
-    let (remain, ((sign, number_of_dice, _, number_of_sides), modifiers)) = pair(
+    let (remain, ((sign, _, number_of_dice, _, number_of_sides), modifiers)) = pair(
         // First: quantity and number of sides, e.g. 3d6 (required)
         tuple((
-            // Optional +/- sign
+            // Optional +/- sign, with possible whitespace after it
             // When it is -, this roll will be subtracted
             opt(alt((tag("+"), tag("-")))),
+            space0,
             // Optional number of dice (defaults to 1)
             opt(parse_unsigned_integer::<u8>),
             tag("d"),
@@ -183,6 +188,41 @@ mod tests {
     #[test]
     fn kitchen_sink() {
         assert_eq!(parse_dice_expression("-6d6r2d2dh2+d20a-5"), Ok(("",
+        Expression::DiceExpression(vec![
+            Roll {
+                number_of_dice: 6,
+                number_of_sides: 6,
+                advantage_status: AdvantageStatus::None,
+                keep_drop: vec![
+                    KeepDrop {
+                        keep_or_drop: KeepOrDrop::Drop,
+                        amount: 2,
+                        highest_or_lowest: HighestOrLowest::Lowest
+                    },
+                    KeepDrop {
+                        keep_or_drop: KeepOrDrop::Drop,
+                        amount: 2,
+                        highest_or_lowest: HighestOrLowest::Highest
+                    }
+                ],
+                reroll: Some(2),
+                subtracted: true
+            },
+            Roll {
+                number_of_dice: 1,
+                number_of_sides: 20,
+                advantage_status: AdvantageStatus::Advantage,
+                keep_drop: vec![],
+                reroll: None,
+                subtracted: false
+            },
+            Constant(-5)
+        ]))));
+    }
+
+    #[test]
+    fn kitchen_sink_whitespace() {
+        assert_eq!(parse_dice_expression("-6d6r2d2dh2 + d20a -5"), Ok(("",
         Expression::DiceExpression(vec![
             Roll {
                 number_of_dice: 6,

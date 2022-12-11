@@ -10,5 +10,6 @@ mod parse_numbers;
 mod parse_ranges;
 mod parse_expression;
 mod parse_dice_roll;
+mod parse_whitespace;
 
 pub use parse_expression::parse_expression;

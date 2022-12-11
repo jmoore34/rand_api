@@ -5,7 +5,7 @@ use nom::{
     bytes::complete::{tag, take_while, take_while1},
     combinator::{opt, recognize},
     sequence::{pair, tuple},
-    IResult,
+    IResult, character::complete::space0,
 };
 
 /// Tell if char is digit or underscore
@@ -29,7 +29,11 @@ fn parse_digit1(input: &str) -> IResult<&str, &str> {
 /// result is a &str (reference to where the int was found in the input).
 /// use another function like parse_i64 for an numeric result
 pub fn parse_signed_integer_raw(input: &str) -> IResult<&str, &str> {
-    recognize(pair(opt(alt((tag("+"), tag("-")))), parse_digit1))(input)
+    recognize(tuple((
+        opt(alt((tag("+"), tag("-")))),
+        space0,
+        parse_digit1
+    )))(input)
 }
 
 pub fn parse_signed_integer<T: FromStr>(input: &str) -> IResult<&str, T> {
