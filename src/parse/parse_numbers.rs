@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
     character::complete::char,
-    combinator::{opt, recognize},
+    combinator::{opt, recognize, map_res},
     sequence::{pair, tuple},
     IResult, character::complete::space0,
 };
@@ -41,11 +41,7 @@ pub fn parse_signed_integer<T>(input: &str) -> IResult<&str, T>
 where T: FromStr + std::ops::Neg<Output = T>, <T as FromStr>::Err: std::fmt::Debug {
     let (input, sign) = opt(alt((char('+'), char('-'))))(input)?;
     let (input, _) = space0(input)?;
-    let (input, value) = parse_digit1(input)?;
-
-
-    // TODO: remove unwrap
-    let value = value.parse::<T>().unwrap();
+    let (input, value) = map_res(parse_digit1, |s| s.parse::<T>())(input)?;
 
     let value = match sign {
         Some('-') => -value,
@@ -56,12 +52,7 @@ where T: FromStr + std::ops::Neg<Output = T>, <T as FromStr>::Err: std::fmt::Deb
 }
 
 pub fn parse_unsigned_integer<T: FromStr>(input: &str) -> IResult<&str, T> {
-    let (remain, raw_num) = parse_digit1(input)?;
-
-    match raw_num.parse::<T>() {
-        Ok(i) => Ok((remain, i)),
-        Err(err) => todo!(),
-    }
+    map_res(parse_digit1, |s| s.parse::<T>())(input)
 }
 
 /// parse the function part of a float
@@ -94,24 +85,17 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
 
 /// strictly parse f32: must have dot and/or exponent
 pub fn parse_f32(input: &str) -> IResult<&str, f32> {
-    let (remain, raw_float) = parse_float(input)?;
-
-    match raw_float.parse::<f32>() {
-        Ok(i) => Ok((remain, i)),
-        Err(_) => todo!(),
-    }
+    map_res(parse_float, |s| s.parse())(input)
 }
 
 /// flexibly parse f32: i.e., the input can be an integer
 /// w/o decimal or exponent
 /// and it will be cast to f32
 pub fn flexible_parse_f32(input: &str) -> IResult<&str, f32> {
-    let (remain, raw_float) = alt((parse_float, parse_signed_integer_raw))(input)?;
-
-    match raw_float.parse::<f32>() {
-        Ok(i) => Ok((remain, i)),
-        Err(_) => todo!(),
-    }
+    map_res(
+        alt((parse_float, parse_signed_integer_raw)),
+        |s| s.parse::<f32>()
+    )(input)
 }
 
 #[cfg(test)]
