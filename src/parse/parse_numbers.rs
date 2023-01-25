@@ -3,6 +3,7 @@ use std::str::FromStr;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
+    character::complete::char,
     combinator::{opt, recognize},
     sequence::{pair, tuple},
     IResult, character::complete::space0,
@@ -36,13 +37,22 @@ pub fn parse_signed_integer_raw(input: &str) -> IResult<&str, &str> {
     )))(input)
 }
 
-pub fn parse_signed_integer<T: FromStr>(input: &str) -> IResult<&str, T> {
-    let (remain, raw_num) = parse_signed_integer_raw(input)?;
+pub fn parse_signed_integer<T>(input: &str) -> IResult<&str, T>
+where T: FromStr + std::ops::Neg<Output = T>, <T as FromStr>::Err: std::fmt::Debug {
+    let (input, sign) = opt(alt((char('+'), char('-'))))(input)?;
+    let (input, _) = space0(input)?;
+    let (input, value) = parse_digit1(input)?;
 
-    match raw_num.parse::<T>() {
-        Ok(i) => Ok((remain, i)),
-        Err(err) => todo!(),
-    }
+
+    // TODO: remove unwrap
+    let value = value.parse::<T>().unwrap();
+
+    let value = match sign {
+        Some('-') => -value,
+        _ => value,
+    };
+
+    Ok((input, value))
 }
 
 pub fn parse_unsigned_integer<T: FromStr>(input: &str) -> IResult<&str, T> {
